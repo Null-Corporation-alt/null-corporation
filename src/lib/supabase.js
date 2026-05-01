@@ -1,21 +1,35 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// Supabase env vars - try multiple naming conventions
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || import.meta.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('Supabase credentials not found. Some features may not work.');
-}
+// Create a lazy-initialized client to avoid errors when env vars are not yet available
+let supabaseClient = null;
 
-export const supabase = createClient(
-  supabaseUrl || '',
-  supabaseAnonKey || ''
-);
+export const getSupabase = () => {
+  if (!supabaseClient && supabaseUrl && supabaseAnonKey) {
+    supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
+  }
+  return supabaseClient;
+};
+
+// For backward compatibility - will be null if env vars not set
+export const supabase = (supabaseUrl && supabaseAnonKey) 
+  ? createClient(supabaseUrl, supabaseAnonKey) 
+  : null;
+
+// Helper to get client safely
+const getClient = () => {
+  const client = getSupabase();
+  if (!client) throw new Error('Supabase not configured');
+  return client;
+};
 
 // Hacks Service
 export const hacksService = {
   async getAll(userId) {
-    const { data, error } = await supabase
+    const { data, error } = await getClient()
       .from('hacks')
       .select('*')
       .eq('user_id', userId)
@@ -25,7 +39,7 @@ export const hacksService = {
   },
 
   async getById(id) {
-    const { data, error } = await supabase
+    const { data, error } = await getClient()
       .from('hacks')
       .select('*')
       .eq('id', id)
@@ -35,7 +49,7 @@ export const hacksService = {
   },
 
   async create(hack) {
-    const { data, error } = await supabase
+    const { data, error } = await getClient()
       .from('hacks')
       .insert([hack])
       .select()
@@ -45,7 +59,7 @@ export const hacksService = {
   },
 
   async update(id, updates) {
-    const { data, error } = await supabase
+    const { data, error } = await getClient()
       .from('hacks')
       .update({ ...updates, updated_at: new Date().toISOString() })
       .eq('id', id)
@@ -56,7 +70,7 @@ export const hacksService = {
   },
 
   async delete(id) {
-    const { error } = await supabase
+    const { error } = await getClient()
       .from('hacks')
       .delete()
       .eq('id', id);
@@ -64,7 +78,7 @@ export const hacksService = {
   },
 
   async getStats(userId) {
-    const { data, error } = await supabase
+    const { data, error } = await getClient()
       .from('hacks')
       .select('category, status, risk_level, created_at')
       .eq('user_id', userId);
@@ -91,14 +105,18 @@ export const hacksService = {
 // Activity Logs Service
 export const activityService = {
   async log(userId, action, details = {}) {
-    const { error } = await supabase
-      .from('activity_logs')
-      .insert([{ user_id: userId, action, details }]);
-    if (error) console.error('Failed to log activity:', error);
+    try {
+      const { error } = await getClient()
+        .from('activity_logs')
+        .insert([{ user_id: userId, action, details }]);
+      if (error) console.error('Failed to log activity:', error);
+    } catch (e) {
+      console.error('Supabase not configured:', e);
+    }
   },
 
   async getRecent(userId, limit = 20) {
-    const { data, error } = await supabase
+    const { data, error } = await getClient()
       .from('activity_logs')
       .select('*')
       .eq('user_id', userId)
@@ -109,7 +127,7 @@ export const activityService = {
   },
 
   async getStats(userId) {
-    const { data, error } = await supabase
+    const { data, error } = await getClient()
       .from('activity_logs')
       .select('action, created_at')
       .eq('user_id', userId);
@@ -145,7 +163,7 @@ export const activityService = {
 // Site Config Service
 export const siteConfigService = {
   async getAll() {
-    const { data, error } = await supabase
+    const { data, error } = await getClient()
       .from('site_config')
       .select('*');
     if (error) throw error;
@@ -153,7 +171,7 @@ export const siteConfigService = {
   },
 
   async get(key) {
-    const { data, error } = await supabase
+    const { data, error } = await getClient()
       .from('site_config')
       .select('*')
       .eq('key', key)
@@ -163,7 +181,7 @@ export const siteConfigService = {
   },
 
   async update(key, value) {
-    const { data, error } = await supabase
+    const { data, error } = await getClient()
       .from('site_config')
       .update({ value: JSON.stringify(value), updated_at: new Date().toISOString() })
       .eq('key', key)
@@ -174,7 +192,7 @@ export const siteConfigService = {
   },
 
   async getPublicConfig() {
-    const { data, error } = await supabase
+    const { data, error } = await getClient()
       .from('site_config')
       .select('key, value')
       .eq('is_public', true);
@@ -191,7 +209,7 @@ export const siteConfigService = {
 // Terminal Commands Service
 export const terminalService = {
   async getCommands(userId) {
-    const { data, error } = await supabase
+    const { data, error } = await getClient()
       .from('terminal_commands')
       .select('*')
       .or(`user_id.eq.${userId},is_system.eq.true`)
@@ -201,7 +219,7 @@ export const terminalService = {
   },
 
   async addCommand(userId, command, output, description = '') {
-    const { data, error } = await supabase
+    const { data, error } = await getClient()
       .from('terminal_commands')
       .insert([{ user_id: userId, command, output, description }])
       .select()
@@ -211,7 +229,7 @@ export const terminalService = {
   },
 
   async deleteCommand(id) {
-    const { error } = await supabase
+    const { error } = await getClient()
       .from('terminal_commands')
       .delete()
       .eq('id', id);
