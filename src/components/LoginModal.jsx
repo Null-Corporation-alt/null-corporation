@@ -77,7 +77,13 @@ export default function LoginModal({ open, onClose }) {
     const username = generateUsername();
     const password = generatePassword();
     try {
-      await base44.users.inviteUser(email, 'user');
+      console.log('[v0] Attempting to register user:', email);
+      
+      // Try to invite user via base44
+      const inviteResult = await base44.users.inviteUser(email, 'user');
+      console.log('[v0] Invite result:', inviteResult);
+      
+      // Send welcome email with credentials
       await base44.integrations.Core.SendEmail({
         from_name: 'NULL SYSTEM',
         to: email,
@@ -86,7 +92,20 @@ export default function LoginModal({ open, onClose }) {
       });
       setMode('registered');
     } catch (err) {
-      setError('Error al registrar. El email puede que ya esté en uso.');
+      console.error('[v0] Registration error:', err);
+      console.error('[v0] Error details:', err?.message, err?.response, err?.data);
+      
+      // More specific error messages
+      const errorMessage = err?.message || err?.toString() || '';
+      if (errorMessage.toLowerCase().includes('already') || errorMessage.toLowerCase().includes('exist')) {
+        setError('Este email ya está registrado. Intenta iniciar sesión.');
+      } else if (errorMessage.toLowerCase().includes('permission') || errorMessage.toLowerCase().includes('unauthorized')) {
+        setError('No tienes permisos para registrar usuarios.');
+      } else if (errorMessage.toLowerCase().includes('invalid')) {
+        setError('Email inválido. Verifica el formato.');
+      } else {
+        setError(`Error al registrar: ${errorMessage || 'Intenta de nuevo más tarde.'}`);
+      }
     } finally {
       setLoading(false);
     }
