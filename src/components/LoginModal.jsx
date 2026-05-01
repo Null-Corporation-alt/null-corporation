@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { X, Lock, User, Mail, Eye, EyeOff } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
+import { useAuth } from '@/lib/AuthContext';
 
 function generateUsername() {
   const adjectives = ['shadow', 'ghost', 'null', 'void', 'cipher', 'phantom', 'dark', 'silent'];
@@ -23,6 +25,16 @@ export default function LoginModal({ open, onClose }) {
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loginSuccess, setLoginSuccess] = useState(false);
+  const navigate = useNavigate();
+  const { isAuthenticated, checkUserAuth } = useAuth();
+
+  // Redirect to secret zone if already authenticated
+  useEffect(() => {
+    if (open && isAuthenticated) {
+      onClose();
+      navigate('/secret');
+    }
+  }, [open, isAuthenticated, navigate, onClose]);
 
   useEffect(() => {
     if (open) {

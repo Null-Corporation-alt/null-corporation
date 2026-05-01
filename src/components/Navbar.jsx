@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Menu, X } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Menu, X, Shield } from 'lucide-react';
 import LoginModal from './LoginModal.jsx';
+import { useAuth } from '@/lib/AuthContext';
 
 const navLinks = [
   { to: '/about', label: 'SOBRE MÍ' },
@@ -14,6 +15,16 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [loginOpen, setLoginOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
+
+  const handleAuthClick = () => {
+    if (isAuthenticated) {
+      navigate('/secret');
+    } else {
+      setLoginOpen(true);
+    }
+  };
 
   return (
     <>
@@ -38,10 +49,21 @@ export default function Navbar() {
               </Link>
             ))}
             <button
-              onClick={() => setLoginOpen(true)}
-              className="ml-4 px-5 py-2 text-xs tracking-[0.2em] font-bold border border-cyan/50 text-cyan hover:bg-cyan/10 hover:border-cyan transition-all duration-300 box-glow-cyan-hover"
+              onClick={handleAuthClick}
+              className={`ml-4 px-5 py-2 text-xs tracking-[0.2em] font-bold border transition-all duration-300 box-glow-cyan-hover flex items-center gap-2 ${
+                isAuthenticated 
+                  ? 'border-fuchsia-500/50 text-fuchsia-400 hover:bg-fuchsia-500/10 hover:border-fuchsia-500' 
+                  : 'border-cyan/50 text-cyan hover:bg-cyan/10 hover:border-cyan'
+              }`}
             >
-              INICIAR SESIÓN
+              {isAuthenticated ? (
+                <>
+                  <Shield size={14} />
+                  ZONA SECRETA
+                </>
+              ) : (
+                'INICIAR SESIÓN'
+              )}
             </button>
           </div>
 
@@ -71,10 +93,21 @@ export default function Navbar() {
                 </Link>
               ))}
               <button
-                onClick={() => { setLoginOpen(true); setMobileOpen(false); }}
-                className="mt-2 px-5 py-3 text-xs tracking-[0.2em] font-bold border border-cyan/50 text-cyan hover:bg-cyan/10 transition-all duration-300 w-full"
+                onClick={() => { handleAuthClick(); setMobileOpen(false); }}
+                className={`mt-2 px-5 py-3 text-xs tracking-[0.2em] font-bold border transition-all duration-300 w-full flex items-center justify-center gap-2 ${
+                  isAuthenticated 
+                    ? 'border-fuchsia-500/50 text-fuchsia-400 hover:bg-fuchsia-500/10' 
+                    : 'border-cyan/50 text-cyan hover:bg-cyan/10'
+                }`}
               >
-                INICIAR SESIÓN
+                {isAuthenticated ? (
+                  <>
+                    <Shield size={14} />
+                    ZONA SECRETA
+                  </>
+                ) : (
+                  'INICIAR SESIÓN'
+                )}
               </button>
             </div>
           </div>

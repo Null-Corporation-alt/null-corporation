@@ -1,16 +1,24 @@
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
+import ProtectedRoute from '@/components/ProtectedRoute';
 import PageWrapper from './components/PageWrapper';
 import Home from './pages/Home';
 import About from './pages/About';
 import Skills from './pages/Skills';
 import Projects from './pages/Projects';
 import Contact from './pages/Contact';
+
+// Secret Zone
+import SecretLayout from '@/components/secret/SecretLayout';
+import Dashboard from '@/pages/secret/Dashboard';
+import HacksManager from '@/pages/secret/HacksManager';
+import Terminal from '@/pages/secret/Terminal';
+import ControlPanel from '@/pages/secret/ControlPanel';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -34,14 +42,32 @@ const AuthenticatedApp = () => {
   // Render the main app
   return (
     <Routes>
+      {/* Public Routes */}
       <Route element={<PageWrapper />}>
         <Route path="/" element={<Home />} />
         <Route path="/about" element={<About />} />
         <Route path="/skills" element={<Skills />} />
         <Route path="/projects" element={<Projects />} />
         <Route path="/contact" element={<Contact />} />
-        <Route path="*" element={<PageNotFound />} />
       </Route>
+
+      {/* Secret Zone - Protected Routes */}
+      <Route 
+        element={
+          <ProtectedRoute 
+            unauthenticatedElement={<Navigate to="/" replace />}
+          />
+        }
+      >
+        <Route element={<SecretLayout />}>
+          <Route path="/secret" element={<Dashboard />} />
+          <Route path="/secret/hacks" element={<HacksManager />} />
+          <Route path="/secret/terminal" element={<Terminal />} />
+          <Route path="/secret/control" element={<ControlPanel />} />
+        </Route>
+      </Route>
+
+      <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
 };
